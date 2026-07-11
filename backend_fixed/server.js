@@ -8,6 +8,7 @@ import connectdb from "./db/connectDb.js";
 import auth from "./routes/auth.js";
 import session from "./routes/session.js";
 import execute from "./routes/execute.js";
+import turn from "./routes/turn.js";
 import registerSocketHandlers from "./socket/socketHandlers.js";
 
 dotenv.config();
@@ -39,6 +40,7 @@ connectdb();
 app.use("/api", auth);
 app.use("/api/sessions", session);
 app.use("/api/execute", execute);
+app.use("/api", turn);
 
 registerSocketHandlers(io);
 

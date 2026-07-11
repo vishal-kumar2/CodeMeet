@@ -101,45 +101,44 @@ export const DataProvider = ({ children }) => {
     if (!socket || !socketConnected || !socket.id) return;
     if (peerInstance.current && !peerInstance.current.destroyed) return;
 
-    const peer = new Peer(socket.id.replace(/^_/, ""), {
-      config: {
-        iceServers: [
-          { urls: "stun:openrelay.metered.ca:80" },
-          {
-            urls: "turn:openrelay.metered.ca:80",
-            username: "openrelayproject",
-            credential: "openrelayproject",
-          },
-          {
-            urls: "turn:openrelay.metered.ca:443",
-            username: "openrelayproject",
-            credential: "openrelayproject",
-          },
-          {
-            urls: "turn:openrelay.metered.ca:443?transport=tcp",
-            username: "openrelayproject",
-            credential: "openrelayproject",
-          },
-        ],
-      },
-    });
+    let cancelled = false;
 
-    peer.on("open", (id) => {
-      setPeerId(id);
-      setPeerReady(true);
-    });
-    peer.on("error", (err) => {
-      console.error("PeerJS error:", err);
-    });
-    peer.on("disconnected", () => {
-      setPeerReady(false);
-    });
+    const buildPeer = (iceServers) => {
+      if (cancelled) return;
+      const peer = new Peer(socket.id.replace(/^_/, ""), { config: { iceServers } });
 
-    peerInstance.current = peer;
+      peer.on("open", (id) => {
+        setPeerId(id);
+        setPeerReady(true);
+      });
+      peer.on("error", (err) => {
+        console.error("PeerJS error:", err);
+      });
+      peer.on("disconnected", () => {
+        setPeerReady(false);
+      });
+
+      peerInstance.current = peer;
+    };
+
+    const fallbackIceServers = [
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+    ];
+
+    // TURN credentials come from our own backend (/api/turn-credentials),
+    // which holds the Metered SECRET KEY server-side and proxies the
+    // request. The secret key must never live in frontend code/env vars.
+    fetch(`${API_URL}/api/turn-credentials`)
+      .then((res) => res.json())
+      .then((iceServers) => buildPeer(iceServers && iceServers.length ? iceServers : fallbackIceServers))
+      .catch((err) => {
+        console.error("Failed to fetch TURN credentials, falling back to STUN-only:", err);
+        buildPeer(fallbackIceServers);
+      });
 
     return () => {
-      // Keep the peer alive across route changes within the same tab session;
-      // it's only really torn down when the whole app unmounts.
+      cancelled = true;
     };
   }, [socket, socketConnected]);
 
