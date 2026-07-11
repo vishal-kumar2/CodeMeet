@@ -101,7 +101,7 @@ export const DataProvider = ({ children }) => {
     if (!socket || !socketConnected || !socket.id) return;
     if (peerInstance.current && !peerInstance.current.destroyed) return;
 
-    const peer = new Peer(socket.id, {
+    const peer = new Peer(socket.id.replace(/^_/, ""), {
       config: {
         iceServers: [
           { urls: "stun:openrelay.metered.ca:80" },

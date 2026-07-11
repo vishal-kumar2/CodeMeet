@@ -52,7 +52,7 @@ export default function registerSocketHandlers(io) {
           }
 
           socket.emit("join-approved", { roomId, isHost: true });
-          socket.to(roomId).emit("peer-ready", { peerId: socket.id, status: "host-joined" });
+          socket.to(roomId).emit("peer-ready", { peerId: socket.id.replace(/^_/, ""), status: "host-joined" });
 
           // In case candidates were already waiting when the host (re)connected
           if (room.pending.size > 0) {
@@ -99,7 +99,7 @@ export default function registerSocketHandlers(io) {
         room.participants.set(socketId, { name: pendingUser.name, isHost: false });
         candidateSocket.join(roomId);
         candidateSocket.emit("join-approved", { roomId, isHost: false });
-        io.to(roomId).emit("peer-ready", { peerId: socketId, status: "joined" });
+        io.to(roomId).emit("peer-ready", { peerId: socketId.replace(/^_/, ""), status: "joined" });
       } else {
         candidateSocket.emit("join-rejected", { message: "The interviewer declined your request to join" });
       }
